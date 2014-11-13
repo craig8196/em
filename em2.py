@@ -223,10 +223,9 @@ def confusion_matrix_to_file(conf_matrix, file_name):
     for key in conf_matrix:
         left_axis[key[0]] = True
         right_axis[key[1]] = True
-    for i, key in enumerate(axis):
-        axis[key] = i
     
-    matrix = [['' for i in xrange(len(axis) + 1)] for i in xrange(len(axis) + 1)]
+    matrix = [['' for i in xrange(len(right_axis) + 1)] for i in xrange(len(left_axis) + 1)]
+    
     for i, key in enumerate(axis):
         matrix[0][i+1] = key
         matrix[i+1][0] = key
