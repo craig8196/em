@@ -95,9 +95,18 @@ class EM(object):
         if not is_processed:
             pass # TODO process data
         
+        results = []
         for doc in data:
-            pass
-        return None
+            max_cluster = 0
+            max_prob = float('-inf')
+            for k in xrange(self.clusters):
+                logprob = self.betas[k].dot(doc)
+                logprob += self.lambdas[k]
+                if logprob > max_prob:
+                    max_prob = logprob
+                    max_cluster = k
+            results.append(max_cluster)
+        return results
 
 def main2():
     print('Welcome')
@@ -117,23 +126,7 @@ def main2():
         unlabeled_data.append(doc_contents)
     
     em.init(2, unlabeled_data)
-    
-    
-    #~ clustered_data = em.cluster(unlabeled_data, verbose=True)
-    #~ 
-    #~ print test_data
-    #~ print clustered_data
-    #~ 
-    #~ results = {}
-    #~ for r in zip(test_data, clustered_data):
-        #~ r = (r[0][0], r[1])
-        #~ results[r] = results.setdefault(r, 0) + 1
-    #~ 
-    #~ print results
-
-
-
-
+    print(em.cluster())
 
 
 DEBUG = False
