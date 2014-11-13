@@ -216,7 +216,35 @@ def prune(documents, top_n=10):
                 temp.append(token)
         result.append(temp)
     return result
+
+def confusion_matrix_to_file(conf_matrix, file_name):
+    left_axis = OrderedDict()
+    right_axis = OrderedDict()
+    for key in conf_matrix:
+        left_axis[key[0]] = True
+        right_axis[key[1]] = True
+    for i, key in enumerate(axis):
+        axis[key] = i
     
+    matrix = [['' for i in xrange(len(axis) + 1)] for i in xrange(len(axis) + 1)]
+    for i, key in enumerate(axis):
+        matrix[0][i+1] = key
+        matrix[i+1][0] = key
+    for i, key in enumerate(axis):
+        for j, key2 in enumerate(axis):
+            i2 = i + 1
+            j2 = j + 1
+            comb_key = (key, key2)
+            if comb_key in conf_matrix:
+                matrix[i2][j2] = conf_matrix[comb_key]
+            else:
+                matrix[i2][j2] = 0
+    with codecs.open(file_name, 'w', 'utf-8') as f:
+        for line in matrix:
+            for i, v in enumerate(line):
+                line[i] = str(v)
+            s = ', '.join(line)
+            f.write(s+'\n')
 
 def main():
     # get stopwords
