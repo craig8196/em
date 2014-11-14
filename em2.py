@@ -14,11 +14,16 @@ class EM(object):
     def __init__(self, likelihood_threshold=10**-2):
         self.threshold = likelihood_threshold
         self.previous_likelihood = float("-inf")
+        self.max_iter = 10
+        self.curr_iter = 0
     
     def _log_likelihood_of_data(self):
         return self.likelihoods.sum()
     
     def _check_threshold(self):
+        #~ self.curr_iter += 1
+        #~ if self.curr_iter > self.max_iter:
+            #~ return False
         self.beta_dot_data = self.betas.dot(self.processed_data.T)
         self.likelihoods = np.array([logsumexp(row+self.lambdas) for row in self.beta_dot_data.T])
         previous = self.previous_likelihood
@@ -82,6 +87,9 @@ class EM(object):
                 temp = logsumexp([temp, np.log(len(vocab))])
                 for t in xrange(len(self.vocab)):
                     new_betas[k, t] = logsumexp([new_betas[k, t], 0]) - temp
+            
+            #~ for i in xrange(clusters): # make sure betas don't violate laws of probability
+                #~ print(np.exp(new_betas[i]).sum())
             
             self.lambdas = new_lambdas
             self.betas = new_betas
@@ -165,7 +173,7 @@ def reservoir_sampling(size, sample):
                 sample_indices[r] = index
     return set(sample_indices)
 
-def newsgroups_dataset_iterator(path, stopwords, sample=50):
+def newsgroups_dataset_iterator(path, stopwords, sample=100):
     for root, dirs, files in os.walk(path):
         if root == path:
             continue
@@ -194,10 +202,18 @@ def prune(documents, top_n=10):
         for token in temp:
             d_freq[token] = d_freq.setdefault(token, 0) + 1
         dt_freq.append(temp)
+    # remove singletons
+    singletons = set()
+    for tok, cnt in d_freq.iteritems():
+        if cnt == 1:
+            singletons.add(tok)
     # calculate weights
     for t_freq in dt_freq:
         for token, count in t_freq.iteritems():
-            weight = (1 + math.log(count))*math.log(doc_count/d_freq[token])
+            if token in singletons:
+                weight = 0
+            else:
+                weight = (1 + math.log(count))*math.log(doc_count/d_freq[token])
             t_freq[token] = weight
     if DEBUG: print(dt_freq[23])
     # find top n types per document
@@ -279,10 +295,24 @@ def main():
     
     em = EM()
     # initialize
-    em.init(7, pruned_documents)
+    #~ em.init(7, pruned_documents)
+    em.init(20, pruned_documents)
     # cluster
     clustered_docs = em.cluster()
     
+    classes = set()
+    results = {}
+    for mine, actual in zip(clustered_docs, document_classes):
+        t = (mine, actual[1])
+        classes.add(actual[1])
+        results[t] = results.setdefault(t, 0) + 1
+    print(results)
+    for c in classes:
+        print('Class:', c)
+        for k, v in results.iteritems():
+            if k[1] == c:
+                print(k[0], v)
+    
 
 if __name__ == "__main__":
-    main2()
+    main()
