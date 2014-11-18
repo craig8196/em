@@ -234,32 +234,92 @@ def prune(documents, top_n=10):
     return result
 
 def confusion_matrix_to_file(conf_matrix, file_name):
-    left_axis = OrderedDict()
-    right_axis = OrderedDict()
+    """Takes a dict conf_matrix where keys are 2-tuples and they map to counts."""
+    rows = set()
+    cols = set()
     for key in conf_matrix:
-        left_axis[key[0]] = True
-        right_axis[key[1]] = True
+        rows.add(key[0])
+        cols.add(key[1])
+    rows = sorted(list(rows))
+    cols = sorted(list(cols))
     
-    matrix = [['' for i in xrange(len(right_axis) + 1)] for i in xrange(len(left_axis) + 1)]
+    matrix = [[0 for i in xrange(len(cols))] for i in xrange(len(rows))]
     
-    for i, key in enumerate(axis):
-        matrix[0][i+1] = key
-        matrix[i+1][0] = key
-    for i, key in enumerate(axis):
-        for j, key2 in enumerate(axis):
-            i2 = i + 1
-            j2 = j + 1
-            comb_key = (key, key2)
-            if comb_key in conf_matrix:
-                matrix[i2][j2] = conf_matrix[comb_key]
-            else:
-                matrix[i2][j2] = 0
+    for i, row in enumerate(rows):
+        for j, col in enumerate(cols):
+            matrix[i][j] = conf_matrix.setdefault((row, col), 0)
+    
+    result = ',' + ','.join(map(lambda x: str(x), cols)) + '\n'
+    for i, row in enumerate(rows):
+        result += str(row) + ','
+        result += ','.join(map(lambda x: str(x), matrix[i]))
+        result += '\n'
+    
     with codecs.open(file_name, 'w', 'utf-8') as f:
-        for line in matrix:
-            for i, v in enumerate(line):
-                line[i] = str(v)
-            s = ', '.join(line)
-            f.write(s+'\n')
+        f.write(result)
+    return result
+
+def compute_ari(d):
+    """d -- Dict with a tuple as the key and count as the value"""
+    def choose_2(n_top):
+        if n_top < 2:
+            return 0
+        return (n_top)*(n_top-1)/2
+    
+    rows = {}
+    cols = {}
+    n = 0 # total count
+    for t, count in d.iteritems():
+        row = t[0]
+        col = t[1]
+        rows[row] = rows.setdefault(row, 0) + count
+        cols[col] = cols.setdefault(col, 0) + count
+        n += count
+    print(rows)
+    print(cols)
+    rows = dict(map(lambda(k,v):(k, choose_2(v)), rows.iteritems()))
+    cols = dict(map(lambda(k,v):(k, choose_2(v)), cols.iteritems()))
+    ROWS = sum(rows.values()) # sum over rows
+    COLS = sum(cols.values()) # sum over columns
+    A = sum(map(lambda(k,v): choose_2(v), d.iteritems()))
+    B = ROWS*COLS
+    C = choose_2(n)
+    D = ROWS+COLS
+    return (A-B/C)/(D/2 - B/C)
+
+def test_ari():
+    d = {
+        (1, 1): 2,
+        (3, 2): 2,
+        (2, 3): 2,
+        (1, 2): 0,
+    }
+    print(compute_ari(d)) # should be 1.0
+    d = {
+        (1, 1): 1,
+        (1, 2): 1,
+        (2, 3): 2,
+        (3, 1): 1,
+        (3, 2): 1,
+    }
+    print(compute_ari(d)) # should be ~ 1/6
+
+def test_confusion_to_file():
+    d = {
+        (1, 1): 2,
+        (3, 2): 2,
+        (2, 3): 2,
+        (1, 2): 0,
+    }
+    print(confusion_matrix_to_file(d, 'test1.csv'))
+    d = {
+        (1, 1): 1,
+        (1, 2): 1,
+        (2, 3): 2,
+        (3, 1): 1,
+        (3, 2): 1,
+    }
+    print(confusion_matrix_to_file(d, 'test2.csv'))
 
 def main():
     # get stopwords
@@ -312,7 +372,6 @@ def main():
         for k, v in results.iteritems():
             if k[1] == c:
                 print(k[0], v)
-    
 
 if __name__ == "__main__":
-    main()
+    test_confusion_to_file()
