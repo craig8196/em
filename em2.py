@@ -41,7 +41,7 @@ class EM(object):
             return False
         return True # Keep iterating.
     
-    def run_em(self, clusters, data, likelihood_threshold=10**-2, max_iter=10000):
+    def run_em(self, clusters, data, likelihood_threshold=10**-2, max_iter=200):
         """Performs EM to classify the given data.
         Does not perform feature selection for you.
         """

@@ -85,7 +85,7 @@ def newsgroups_dataset_iterator(path, stopwords, sample=100):
         if root == path:
             continue
         d = root.split('/', 1)[1]
-        group = (d.split('.', 1)[0], d)
+        group = d
         indices = reservoir_sampling(len(files), sample)
         for index, file_name in enumerate(files):
             if index not in indices:
@@ -97,7 +97,7 @@ def newsgroups_dataset_iterator(path, stopwords, sample=100):
                 yield group, seq
     raise StopIteration
 
-def prune(documents, top_n=6):
+def prune(documents, top_n=3):
     doc_count = len(documents)
     dt_freq = [] # document word type frequency
     d_freq = {} # document frequency of type
@@ -293,69 +293,69 @@ def run_experiment(clusters, documents, document_classes, em_type="EM"):
 
 
 def run_experiments():
-    #~ # get stopwords
-    #~ STOPWORD_FILE = 'english_all.txt'
-    #~ stopwords = set()
-    #~ with codecs.open(STOPWORD_FILE, 'r', 'utf-8') as f:
-        #~ for line in f:
-            #~ stopwords.add(line.strip().lower())
-    #~ 
-    #~ print("Stopword Count:", str(len(stopwords)))
-    #~ 
-    #~ # get documents as feature vectors
-    #~ DOCUMENTS_PATH = 'groups'
-    #~ dataset = newsgroups_dataset_iterator(DOCUMENTS_PATH, stopwords)
-    #~ documents = []
-    #~ document_classes = []
-    #~ major_classes = set()
-    #~ minor_classes = set()
-    #~ for doc_class, doc in dataset:
-        #~ document_classes.append(doc_class)
-        #~ documents.append(doc)
-        #~ major_classes.add(doc_class[0])
-        #~ minor_classes.add(doc_class[1])
-    #~ 
-    #~ print("Doc Count:", str(len(documents)))
-    #~ print("Major Classes:", str(len(major_classes)))
-    #~ print("Minor Classes:", str(len(minor_classes)))
-    #~ 
-    #~ if DEBUG: print(documents[23])
-    #~ # prune features
-    #~ pruned_documents = prune(documents)
-    #~ if DEBUG: print(pruned_documents[23])
+    # get stopwords
+    STOPWORD_FILE = 'english_all.txt'
+    stopwords = set()
+    with codecs.open(STOPWORD_FILE, 'r', 'utf-8') as f:
+        for line in f:
+            stopwords.add(line.strip().lower())
     
-    test_data = [
-        ('H', ['H', 'H', 'H']),
-        ('T', ['T', 'T', 'T']),
-        ('H', ['H', 'H', 'H']),
-        ('T', ['T', 'T', 'T']),
-        ('H', ['H', 'H', 'H']),
-    ]
+    print("Stopword Count:", str(len(stopwords)))
     
-    # Seperate classes from groups
-    pruned_documents = []
+    # get documents as feature vectors
+    DOCUMENTS_PATH = 'groups'
+    dataset = newsgroups_dataset_iterator(DOCUMENTS_PATH, stopwords)
+    documents = []
     document_classes = []
-    for doc_class, doc_contents in test_data:
-        pruned_documents.append(doc_contents)
+    major_classes = set()
+    minor_classes = set()
+    for doc_class, doc in dataset:
         document_classes.append(doc_class)
+        documents.append(doc)
+        major_classes.add(doc_class[0])
+        minor_classes.add(doc_class[1])
+    
+    print("Doc Count:", str(len(documents)))
+    print("Major Classes:", str(len(major_classes)))
+    print("Minor Classes:", str(len(minor_classes)))
+    
+    if DEBUG: print(documents[23])
+    # prune features
+    pruned_documents = prune(documents)
+    if DEBUG: print(pruned_documents[23])
+    
+    #~ test_data = [
+        #~ ('H', ['H', 'H', 'H']),
+        #~ ('T', ['T', 'T', 'T']),
+        #~ ('H', ['H', 'H', 'H']),
+        #~ ('T', ['T', 'T', 'T']),
+        #~ ('H', ['H', 'H', 'H']),
+    #~ ]
+    #~ 
+    #~ # Seperate classes from groups
+    #~ pruned_documents = []
+    #~ document_classes = []
+    #~ for doc_class, doc_contents in test_data:
+        #~ pruned_documents.append(doc_contents)
+        #~ document_classes.append(doc_class)
     
     
-    clusters = [2, 5, 10, 15, 20, 25, 30]
+    clusters = [20, 25, 30]
     em_types = ["EM", "CEM"]
     
     aris = {}
-    for cluster in clusters:
-        for em_type in em_types:
-            ari, log_likelihoods, conf_matrix = run_experiment(cluster, pruned_documents, document_classes, em_type)
-            file_prefix = em_type+"_"+str(cluster)+"_"
-            aris[(em_type, cluster)] = ari
-            ll_filename = file_prefix + "loglikelihood.json"
-            with io.open(ll_filename, 'w', encoding='utf-8', errors='ignore') as f:
-                f.write(unicode(json.dumps(log_likelihoods)))
-            conf_filename = file_prefix + "conf_matrix.csv"
-            confusion_matrix_to_file(conf_matrix, conf_filename)
+    cluster = int(sys.argv[1])
+    for em_type in em_types:
+        ari, log_likelihoods, conf_matrix = run_experiment(cluster, pruned_documents, document_classes, em_type)
+        file_prefix = em_type+"_"+str(cluster)+"_"
+        aris[(em_type, cluster)] = ari
+        ll_filename = file_prefix + "loglikelihood.json"
+        with io.open(ll_filename, 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(unicode(json.dumps(log_likelihoods)))
+        conf_filename = file_prefix + "conf_matrix.csv"
+        confusion_matrix_to_file(conf_matrix, conf_filename)
     
-    aris_filename = "aris.csv"
+    aris_filename = "aris_"+str(cluster)+".csv"
     confusion_matrix_to_file(aris, aris_filename)
 
 if __name__ == "__main__":

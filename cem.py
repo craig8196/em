@@ -31,6 +31,7 @@ class CEM(object):
             for i in xrange(shape[1]):
                 temp[k][i] += -self.log_fact_processed_data_per_doc[i] + self.log_fact_data_token_counts[i] + self.log_lambdas[k]
         likelihood_of_data = np.array([logsumexp(row) for row in temp.T]).sum()
+        self.log_likelihoods.append(likelihood_of_data)
         previous = self.previous_likelihood
         self.previous_likelihood = likelihood_of_data
         
@@ -39,7 +40,7 @@ class CEM(object):
             return False
         return True # Keep iterating.
     
-    def run_em(self, clusters, data, likelihood_threshold=10**-2, max_iter=10000):
+    def run_em(self, clusters, data, likelihood_threshold=10**-2, max_iter=200):
         """Performs EM to classify the given data.
         Does not perform feature selection for you.
         """
